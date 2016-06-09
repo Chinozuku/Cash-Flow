@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_add"
+            android:icon="@mipmap/ic_add_new"
+            android:title="Add" />
+        <item
+            android:id="@+id/nav_report"
+            android:icon="@mipmap/ic_money_report"
+            android:title="Report" />
+
+    </group>
+
+    <item android:title="Back Up and Restore">
+        <menu>
+            <item
+                android:id="@+id/nav_backup"
+                android:icon="@mipmap/ic_backup"
+                android:title="Backup" />
+            <item
+                android:id="@+id/nav_restore"
+                android:icon="@mipmap/ic_restore"
+                android:title="Restore" />
+        </menu>
+    </item>
+
+</menu>
