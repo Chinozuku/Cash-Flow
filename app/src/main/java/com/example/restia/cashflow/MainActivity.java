@@ -278,8 +278,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         {
             //make report
             Intent i = new Intent(MainActivity.this, Report.class);
-            i.putExtra("year", spinner.getSelectedItem().toString());
-            i.putExtra("month", yearSpinner.getSelectedItem().toString());
+            i.putExtra("year", yearSpinner.getSelectedItem().toString());
+            i.putExtra("month", (spinner.getSelectedItemPosition() + 1) + "");
+            i.putExtra("mon", spinner.getSelectedItem().toString());
             startActivity(i);
         }
         else if (id == R.id.nav_backup)
@@ -297,7 +298,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
                     File currentDB = new File(currentDBPath);
                     File backupDB = new File(sd, backupDBPath);
-                    System.out.println(currentDBPath);
 
                     if (currentDB.exists())
                     {
@@ -320,10 +320,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     //new user
                     else Toast.makeText(MainActivity.this, "No data to backup!", Toast.LENGTH_SHORT).show();
                 }
-            } catch (Exception e)
-            {
-                System.out.println(e.getMessage());
-            }
+            } catch (Exception e) { }
         }
         else if (id == R.id.nav_restore)
         {
@@ -358,10 +355,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                     //new user
                     else Toast.makeText(MainActivity.this, "No backup data found!", Toast.LENGTH_SHORT).show();
                 }
-            } catch (Exception e)
-            {
-                System.out.println(e.getMessage());
-            }
+            } catch (Exception e) { }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);

@@ -5,17 +5,53 @@ package com.example.restia.cashflow;
  */
 public class GraphHelper
 {
-    private int[] count;
+    private int[] inCount;
+    private int[] outCount;
+    private int[] inValue;
+    private int[] outValue;
 
     public GraphHelper()
     {
-        count = new int[31];
+        inCount = new int[31];
+        outCount = new int[31];
+        inValue = new int[31];
+        outValue = new int[31];
+        for (int i = 0; i < 31; i++)
+        {
+            inCount[i] = 0;
+            outCount[i] = 0;
+            inValue[i] = 0;
+            outValue[i] = 0;
+        }
     }
 
-    public int[] getCount() { return count; }
+    public int[] getInCount() {
+        return inCount;
+    }
 
-    public void increaseCount(int day)
+    public int[] getOutCount() {
+        return outCount;
+    }
+
+    public int[] getInValue() {
+        return inValue;
+    }
+
+    public int[] getOutValue() {
+        return outValue;
+    }
+
+    public void increaseCount(String type, int day, int value)
     {
-        count[day - 1]++;
+        if(type.equals("In"))
+        {
+            inCount[day - 1]++;
+            inValue[day - 1] += value;
+        }
+        else
+        {
+            outCount[day - 1]++;
+            outValue[day - 1] += value;
+        }
     }
 }
