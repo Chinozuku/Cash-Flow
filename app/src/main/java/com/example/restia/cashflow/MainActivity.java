@@ -171,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         adapter.clear();
         model = new ArrayList<>();
         String month = (spinner.getSelectedItemPosition() + 1) + "";
-        String year = yearSpinner.getSelectedItem().toString();
+        String year = (yearSpinner.getSelectedItem() == null ? "" : yearSpinner.getSelectedItem().toString());
         Cursor cursor = database.query("cash", column , "due like '%/" + month + "/" + year + "'", null, null, null, null);
         cursor.moveToFirst();
 
