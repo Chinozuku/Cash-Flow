@@ -8,7 +8,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.Settings;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -19,6 +18,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -44,12 +44,15 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     ArrayList<Model> model;
     CustomAdapter adapter;
     Spinner spinner;
+    Spinner yearSpinner;
+    Button btnSearch;
     ArrayAdapter<CharSequence> spinnerAdapter;
 
     //database property
     private Database db;
     private SQLiteDatabase database;
     private String[] column = { "id", "transactionType", "amount", "title", "name", "due", "note", "pic" };
+    private String[] year = {"due"};
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -75,9 +78,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         //end initialisation
 
         bindAdapter();
-        loadFromDatabase();
         initCustomListView();
         initSpinner();
+        initButtonSearch();
+        loadFromDatabase();
     }
 
     private void bindAdapter() //to bind custom and or standard adapter to its widget respectively
@@ -93,6 +97,8 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         spinnerAdapter = ArrayAdapter.createFromResource(MainActivity.this, R.array.months, android.R.layout.simple_spinner_dropdown_item);
         spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(spinnerAdapter);
+
+        initYearSpinner();
     }
 
     private void initSpinner() //to set the current month and year (year is to be developed later)
@@ -108,6 +114,38 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                 spinner.setSelection(i);
             }
         }
+    }
+
+    private void initButtonSearch()
+    {
+        btnSearch = (Button)findViewById(R.id.btnSearch);
+        btnSearch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v)  {
+                loadFromDatabase();
+            }
+        });
+    }
+
+    private void initYearSpinner()
+    {
+        //year spinner
+        ArrayList<String> adapter = new ArrayList<>();
+        yearSpinner = (Spinner)findViewById(R.id.yearSpinner);
+        Cursor cursor = database.query("cash", year , null, null, null, null, "due asc");
+        cursor.moveToFirst();
+        for(int i = 0; i < cursor.getCount(); i++)
+        {
+            String yearTemp = cursor.getString(0).split("/")[2];
+            if(adapter.indexOf(yearTemp) == -1)
+            {
+                adapter.add(yearTemp);
+            }
+            cursor.moveToNext();
+        }
+        ArrayAdapter<String> adap = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_spinner_dropdown_item, adapter);
+        adap.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        yearSpinner.setAdapter(adap);
     }
 
     private void initCustomListView()
@@ -132,7 +170,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         //manual initialisation and clear all current data
         adapter.clear();
         model = new ArrayList<>();
-        Cursor cursor = database.query("cash", column , null, null, null, null, null);
+        String month = (spinner.getSelectedItemPosition() + 1) + "";
+        String year = yearSpinner.getSelectedItem().toString();
+        Cursor cursor = database.query("cash", column , "due like '%/" + month + "/" + year + "'", null, null, null, null);
         cursor.moveToFirst();
 
         //just temporart variables, to contain the complicated value
@@ -173,6 +213,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             {
                 //update the data on adapter, as well as on the Model object
                 loadFromDatabase();
+                initYearSpinner();
             }
         }
         else if (requestCode == 2) //Edit
@@ -236,6 +277,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         else if (id == R.id.nav_report)
         {
             //make report
+            Intent i = new Intent(MainActivity.this, Report.class);
+            i.putExtra("year", spinner.getSelectedItem().toString());
+            i.putExtra("month", yearSpinner.getSelectedItem().toString());
+            startActivity(i);
         }
         else if (id == R.id.nav_backup)
         {
