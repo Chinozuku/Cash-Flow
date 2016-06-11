@@ -1,10 +1,14 @@
 package com.example.restia.cashflow;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.Settings;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
@@ -20,6 +24,12 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.AdapterView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.nio.channels.FileChannel;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -95,7 +105,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         {
             if(month.format(d).equals(spinnerAdapter.getItem(i).toString()))
             {
-                System.out.println(i);
                 spinner.setSelection(i);
             }
         }
@@ -230,15 +239,114 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         else if (id == R.id.nav_backup)
         {
-            //export the database
+            try
+            {
+                //internal storage
+                File sd = Environment.getExternalStorageDirectory();
+                File data = Environment.getDataDirectory();
+
+                if (sd.canWrite())
+                {
+                    String currentDBPath = getDatabasePath(db.getDatabaseName()).toString();
+                    String backupDBPath = "data/com.example.restia.cashflow";
+
+                    File currentDB = new File(currentDBPath);
+                    File backupDB = new File(sd, backupDBPath);
+                    System.out.println(currentDBPath);
+
+                    if (currentDB.exists())
+                    {
+                        if(!backupDB.exists())
+                        {
+                            if(!backupDB.mkdirs())
+                                Toast.makeText(MainActivity.this, "Please install SDFix", Toast.LENGTH_SHORT).show();
+                        }
+                        backupDBPath = "data/com.example.restia.cashflow/MDP.db";
+                        backupDB = new File(sd, backupDBPath);
+
+                        //copy process
+                        FileChannel src = new FileInputStream(currentDB).getChannel();
+                        FileChannel dst = new FileOutputStream(backupDB).getChannel();
+                        dst.transferFrom(src, 0, src.size());
+                        src.close();
+                        dst.close();
+                        Toast.makeText(MainActivity.this, "Backup Complete!", Toast.LENGTH_SHORT).show();
+                    }
+                    //new user
+                    else Toast.makeText(MainActivity.this, "No data to backup!", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e)
+            {
+                System.out.println(e.getMessage());
+            }
         }
         else if (id == R.id.nav_restore)
         {
             //import the database, but need to check the filename and type
+            try
+            {
+                //internal storage
+                File sd = Environment.getExternalStorageDirectory();
+                File data = Environment.getDataDirectory();
+
+                if (sd.canRead())
+                {
+                    String backupDBPath = "/data/data/com.example.restia.cashflow/databases/MDP";
+                    String currentDBPath = "data/com.example.restia.cashflow/MDP.db";
+
+                    File currentDB = new File(sd, currentDBPath);
+                    File backupDB = new File(backupDBPath);
+
+                    if (currentDB.exists())
+                    {
+                        //closing all connection
+                        db.close();
+
+                        //copy process
+                        FileChannel src = new FileInputStream(currentDB).getChannel();
+                        FileChannel dst = new FileOutputStream(backupDB).getChannel();
+                        dst.transferFrom(src, 0, src.size());
+                        src.close();
+                        dst.close();
+                        closeAfterRestore();
+                    }
+                    //new user
+                    else Toast.makeText(MainActivity.this, "No backup data found!", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e)
+            {
+                System.out.println(e.getMessage());
+            }
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+    private void closeAfterRestore()
+    {
+        AlertDialog.Builder aBuilder = new AlertDialog.Builder(MainActivity.this);
+        aBuilder.setCancelable(false);
+        aBuilder.setTitle("Restore Completed!");
+        aBuilder.setMessage("Please Restart the Application");
+        aBuilder.setPositiveButton("Ok", new DialogInterface.OnClickListener()
+        {
+            @Override
+            public void onClick(DialogInterface dialog, int which)
+            {
+                finish();
+            }
+        });
+        aBuilder.setNegativeButton("No", new DialogInterface.OnClickListener()
+        {
+            @Override
+            public void onClick(DialogInterface dialog, int which)
+            {
+
+            }
+        });
+        AlertDialog dialog = aBuilder.create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setVisibility(View.INVISIBLE);
     }
 }
