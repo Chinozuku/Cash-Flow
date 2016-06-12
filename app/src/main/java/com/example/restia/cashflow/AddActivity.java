@@ -75,13 +75,13 @@ public class AddActivity extends AppCompatActivity
                         float scaling=1080/bmp.getWidth();
                         Bitmap resized = Bitmap.createScaledBitmap(bmp, (int) (bmp.getWidth() * scaling), (int) (bmp.getHeight() * scaling), true);
                         bmp=resized;
-                        Toast.makeText(AddActivity.this, "tes", Toast.LENGTH_SHORT).show();
+
                     }
                     if (bmp.getHeight()>1920) {
                         float scaling=1920/bmp.getHeight();
                         Bitmap resized = Bitmap.createScaledBitmap(bmp, (int) (bmp.getWidth() * scaling), (int) (bmp.getHeight() * scaling), true);
                         bmp=resized;
-                        Toast.makeText(AddActivity.this, "tes2", Toast.LENGTH_SHORT).show();
+
                     }
                     img.setImageBitmap(bmp);
                 } catch (Exception e) { System.out.println(e); }
