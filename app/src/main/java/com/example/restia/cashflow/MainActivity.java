@@ -150,16 +150,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void initCustomListView()
     {
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
-        {
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-            {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 //well, still don't know what to change with current data
                 //still thinking about it
                 Intent i = new Intent(MainActivity.this, Edit.class);
                 LinearLayout l = (LinearLayout) view;
-                i.putExtra("id", ((TextView)l.getChildAt(0)).getText().toString());
+                i.putExtra("id", ((TextView) l.getChildAt(0)).getText().toString());
                 startActivityForResult(i, 2);
             }
         });
@@ -212,13 +210,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             if (resultCode == Activity.RESULT_OK)
             {
                 //update the data on adapter, as well as on the Model object
-                loadFromDatabase();
                 initYearSpinner();
+                loadFromDatabase();
+
             }
         }
         else if (requestCode == 2) //Edit
         {
-
+            if (resultCode == Activity.RESULT_OK) {
+                initYearSpinner();
+                initCustomListView();
+                loadFromDatabase();
+            }
         }
     }
 
@@ -251,11 +254,7 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings)
-        {
-            return true;
-        }
+
 
         return super.onOptionsItemSelected(item);
     }
