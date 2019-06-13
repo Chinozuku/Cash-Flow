@@ -6,19 +6,23 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -47,7 +51,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     Spinner yearSpinner;
     Button btnSearch;
     ArrayAdapter<CharSequence> spinnerAdapter;
-
+    private static final int FILE_SELECT_CODE = 0;
+    private Uri uri;
+    private File myFile;
+    private String fileName;
     //database property
     private Database db;
     private SQLiteDatabase database;
@@ -101,6 +108,79 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         initYearSpinner();
     }
 
+    private void showBackupDialog()//show dialog that used to name saved database(backup)
+    {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Title");
+
+        // Set up the input
+        final EditText input = new EditText(this);
+        // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        builder.setView(input);
+
+        // Set up the buttons
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                fileName = input.getText().toString();
+                //save file name
+                try
+                {
+                    //internal storage
+                    File sd = Environment.getExternalStorageDirectory();
+                    File data = Environment.getDataDirectory();
+
+
+
+                    if (sd.canWrite())
+                    {
+                        String currentDBPath = getDatabasePath(db.getDatabaseName()).toString();
+                        String backupDBPath = "data/com.example.restia.cashflow";
+
+                        File currentDB = new File(currentDBPath);
+                        File backupDB = new File(sd, backupDBPath);
+
+                        if (currentDB.exists())
+                        {
+                            if(!backupDB.exists())
+                            {
+                                if(!backupDB.mkdirs())
+                                    Toast.makeText(MainActivity.this, "Please install SDFix", Toast.LENGTH_SHORT).show();
+                            }
+                            backupDBPath = "data/com.example.restia.cashflow/" + fileName +".db";
+                            backupDB = new File(sd, backupDBPath);
+
+                            //copy process
+                            FileChannel src = new FileInputStream(currentDB).getChannel();
+                            FileChannel dst = new FileOutputStream(backupDB).getChannel();
+                            dst.transferFrom(src, 0, src.size());
+                            src.close();
+                            dst.close();
+                            Toast.makeText(MainActivity.this, "Backup Complete!", Toast.LENGTH_SHORT).show();
+                        }
+                        //new user
+                        else Toast.makeText(MainActivity.this, "No data to backup!", Toast.LENGTH_SHORT).show();
+                    }
+
+
+                } catch (Exception e) { }
+
+            }
+
+
+
+
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        builder.show();
+    }
+
     private void initSpinner() //to set the current month and year (year is to be developed later)
     {
         Date d = Calendar.getInstance().getTime();
@@ -150,16 +230,14 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
     private void initCustomListView()
     {
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener()
-        {
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id)
-            {
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 //well, still don't know what to change with current data
                 //still thinking about it
                 Intent i = new Intent(MainActivity.this, Edit.class);
                 LinearLayout l = (LinearLayout) view;
-                i.putExtra("id", ((TextView)l.getChildAt(0)).getText().toString());
+                i.putExtra("id", ((TextView) l.getChildAt(0)).getText().toString());
                 startActivityForResult(i, 2);
             }
         });
@@ -219,6 +297,47 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         else if (requestCode == 2) //Edit
         {
 
+        }
+        else if (requestCode == FILE_SELECT_CODE) //file chooser
+        {
+            if (resultCode == Activity.RESULT_OK)
+            {
+                // Get the Uri of the selected file
+                uri = data.getData();
+                myFile = new File(uri.toString());
+                try
+                {
+                    //internal storage
+
+                    File sd = Environment.getExternalStorageDirectory();
+                    //File data2 = Environment.getDataDirectory();
+                    if (sd.canRead())
+                    {
+                        String backupDBPath = "/data/data/com.example.restia.cashflow/databases/MDP";
+                        String currentDBPath = "data/com.example.restia.cashflow/MDP.db";
+
+                        File currentDB = new File(sd, currentDBPath);
+                        File backupDB = new File(backupDBPath);
+
+                        if (currentDB.exists())
+                        {
+                            //closing all connection
+                            db.close();
+
+                            //copy process
+                            FileChannel src = new FileInputStream(currentDB).getChannel();
+                            FileChannel dst = new FileOutputStream(backupDB).getChannel();
+                            dst.transferFrom(src, 0, src.size());
+                            src.close();
+                            dst.close();
+                            closeAfterRestore();
+                        }
+                        //new user
+                        else Toast.makeText(MainActivity.this, "No backup data found!", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (Exception e) { }
+
+            }
         }
     }
 
@@ -285,83 +404,58 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
         else if (id == R.id.nav_backup)
         {
-            try
-            {
-                //internal storage
-                File sd = Environment.getExternalStorageDirectory();
-                File data = Environment.getDataDirectory();
-
-                if (sd.canWrite())
-                {
-                    String currentDBPath = getDatabasePath(db.getDatabaseName()).toString();
-                    String backupDBPath = "data/com.example.restia.cashflow";
-
-                    File currentDB = new File(currentDBPath);
-                    File backupDB = new File(sd, backupDBPath);
-
-                    if (currentDB.exists())
-                    {
-                        if(!backupDB.exists())
-                        {
-                            if(!backupDB.mkdirs())
-                                Toast.makeText(MainActivity.this, "Please install SDFix", Toast.LENGTH_SHORT).show();
-                        }
-                        backupDBPath = "data/com.example.restia.cashflow/MDP.db";
-                        backupDB = new File(sd, backupDBPath);
-
-                        //copy process
-                        FileChannel src = new FileInputStream(currentDB).getChannel();
-                        FileChannel dst = new FileOutputStream(backupDB).getChannel();
-                        dst.transferFrom(src, 0, src.size());
-                        src.close();
-                        dst.close();
-                        Toast.makeText(MainActivity.this, "Backup Complete!", Toast.LENGTH_SHORT).show();
-                    }
-                    //new user
-                    else Toast.makeText(MainActivity.this, "No data to backup!", Toast.LENGTH_SHORT).show();
-                }
-            } catch (Exception e) { }
+            //moved to showbackupdialog function, to set new database name
+            showBackupDialog();
         }
         else if (id == R.id.nav_restore)
         {
-            //import the database, but need to check the filename and type
-            try
-            {
-                //internal storage
-                File sd = Environment.getExternalStorageDirectory();
-                File data = Environment.getDataDirectory();
-
-                if (sd.canRead())
-                {
-                    String backupDBPath = "/data/data/com.example.restia.cashflow/databases/MDP";
-                    String currentDBPath = "data/com.example.restia.cashflow/MDP.db";
-
-                    File currentDB = new File(sd, currentDBPath);
-                    File backupDB = new File(backupDBPath);
-
-                    if (currentDB.exists())
-                    {
-                        //closing all connection
-                        db.close();
-
-                        //copy process
-                        FileChannel src = new FileInputStream(currentDB).getChannel();
-                        FileChannel dst = new FileOutputStream(backupDB).getChannel();
-                        dst.transferFrom(src, 0, src.size());
-                        src.close();
-                        dst.close();
-                        closeAfterRestore();
-                    }
-                    //new user
-                    else Toast.makeText(MainActivity.this, "No backup data found!", Toast.LENGTH_SHORT).show();
-                }
-            } catch (Exception e) { }
+            //moved to showFileChooser, to choose database
+            showFileChooser();
         }
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
+    private void showFileChooser()
+    {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        try
+        {
+            startActivityForResult(
+                    Intent.createChooser(intent, "Select a File to Upload"),
+                    FILE_SELECT_CODE);
+        }
+        catch (android.content.ActivityNotFoundException ex)
+        {
+            // Potentially direct the user to the Market with a Dialog
+            Toast.makeText(this, "Please install a File Manager.",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /*@Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        if (requestCode == FILE_SELECT_CODE) //file chooser
+        {
+            if (resultCode == Activity.RESULT_OK)
+            {
+                // Get the Uri of the selected file
+                uri = data.getData();
+                File myFile = new File(uri.getPath());
+                myFile.getAbsolutePath();
+                try
+                {
+                    bmp = MediaStore.Images.Media.getBitmap(this.getContentResolver(), uri);
+                } catch (Exception e) { System.out.println(e); }
+            }
+        }
+    }*/
+
     private void closeAfterRestore()
     {
         AlertDialog.Builder aBuilder = new AlertDialog.Builder(MainActivity.this);
