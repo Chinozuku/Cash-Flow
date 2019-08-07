@@ -3,11 +3,14 @@ package com.example.restia.cashflow;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Bundle;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -16,13 +19,10 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.Toast;
-import android.database.sqlite.SQLiteDatabase;
-import java.io.ByteArrayOutputStream;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
-public class AddActivity extends AppCompatActivity
+import java.io.ByteArrayOutputStream;
+
+public class UpdateActivity extends AppCompatActivity
 {
     private static final int FILE_SELECT_CODE = 0;
     private EditText name, amount, title, note;
@@ -35,11 +35,12 @@ public class AddActivity extends AppCompatActivity
     private RadioButton rbIn;
     private RadioButton rbOut;
     private SQLiteDatabase database;
+    private String[] column = { "id", "transactionType", "amount", "title", "name", "due", "note", "pic" };
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_add);
+        setContentView(R.layout.activity_update);
 
         name = (EditText)findViewById(R.id.tbName);
         amount = (EditText)findViewById(R.id.tbAmount);
@@ -57,7 +58,37 @@ public class AddActivity extends AppCompatActivity
         initBrowse();
         initSubmit();
         initRadio();
+        loadData();
     }
+
+    private void loadData()
+    {
+        db = new Database(this);
+        database = db.getReadableDatabase();
+        Cursor cursor = database.query("cash", column , "id = " + Integer.parseInt(getIntent().getStringExtra("id")), null, null, null, null);
+        cursor.moveToFirst();
+        name.setText(cursor.getString(4));
+        amount.setText(cursor.getInt(2) + "");
+        title.setText(cursor.getString(3));
+        note.setText(cursor.getString(6));
+        String tempdate =cursor.getString(5);
+        String[] parts = tempdate.split("/");
+        date.updateDate(Integer.parseInt(parts[2]), Integer.parseInt(parts[1])-1, Integer.parseInt(parts[0]));
+        if(cursor.getString(1).equals("In")){
+            rbIn.setChecked(true);
+        }else{
+            rbOut.setChecked(true);
+        }
+        byte[] tmp = cursor.getBlob(7);
+        if(tmp != null)
+        {
+            Bitmap bimp = BitmapFactory.decodeByteArray(tmp, 0, tmp.length);
+            img.setImageBitmap(bimp);
+            bmp = bimp;
+        }
+
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     {
@@ -145,7 +176,7 @@ public class AddActivity extends AppCompatActivity
                 //filling value
                 if(amount.getText().toString().equals("") || title.getText().toString().equals("") || name.getText().toString().equals(""))
                 {
-                    Toast.makeText(AddActivity.this, "Check all fields", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(UpdateActivity.this, "Check all fields", Toast.LENGTH_SHORT).show();
                 }
                 else
                 {
@@ -161,8 +192,8 @@ public class AddActivity extends AppCompatActivity
                     values.put("pic", data);
                     //end filling
 
-                    database.insert("cash", null, values);
-                    Toast.makeText(AddActivity.this, "Success", Toast.LENGTH_SHORT).show();
+                    database.update("cash", values, "id = " + getIntent().getStringExtra("id"),null);
+                    Toast.makeText(UpdateActivity.this, "Success", Toast.LENGTH_SHORT).show();
                     Intent returnIntent = new Intent();
                     setResult(Activity.RESULT_OK);
                     finish();
